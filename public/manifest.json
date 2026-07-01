@@ -1,6 +1,6 @@
 {
-  "name": "Lok Sabha Cabinet Simulator",
-  "short_name": "Lok Sabha PM",
+  "name": "Rajniti: PM Cabinet Simulator",
+  "short_name": "Rajniti PM",
   "description": "Become the Prime Minister of India. Manage your cabinet, balance the budget, consult ministers, pass policies, and win the general elections!",
   "start_url": "./",
   "display": "standalone",

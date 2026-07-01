@@ -1,6 +1,6 @@
 {
-  "name": "Indian Government Simulator",
-  "description": "A comprehensive government simulation game of India where you manage the economy, draft policies, allocate state budgets, deal with historical events, and consult AI cabinet advisors.",
+  "name": "Rajniti: PM Cabinet Simulator",
+  "description": "Become the Prime Minister of India. Manage your cabinet, balance the budget, consult AI cabinet advisors, pass policies, and win general elections.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
