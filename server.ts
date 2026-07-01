@@ -166,6 +166,12 @@ app.post("/api/game/advisor", async (req, res) => {
       return res.status(400).json({ error: "Missing advisorId or gameState" });
     }
 
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY is missing. Using local advisor fallback response.");
+      const fallbackAdvice = getLocalAdvisorFallback(advisorId, gameState);
+      return res.json({ advice: fallbackAdvice });
+    }
+
     const ai = getAi();
 
     const ministerProfiles: Record<string, string> = {
@@ -223,7 +229,7 @@ Roleplay instructions:
     try {
       const response = await callWithRetry(() => 
         ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: contents,
           config: {
             systemInstruction: systemInstruction,
@@ -249,6 +255,12 @@ app.post("/api/game/custom-policy", async (req, res) => {
     const { policyText, gameState } = req.body;
     if (!policyText || !gameState) {
       return res.status(400).json({ error: "Missing policyText or gameState" });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY is missing. Using local custom policy fallback response.");
+      const fallbackPolicy = getLocalPolicyFallback(policyText, gameState);
+      return res.json(fallbackPolicy);
     }
 
     const ai = getAi();
@@ -295,7 +307,7 @@ Make sure the numbers are realistic. High spending stimulates growth but increas
     try {
       const response = await callWithRetry(() => 
         ai.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash",
           contents: prompt,
           config: {
             temperature: 0.7,
@@ -361,6 +373,15 @@ app.post("/api/game/news-flash", async (req, res) => {
       return res.status(400).json({ error: "Missing gameState" });
     }
 
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY is missing. Using local news flash fallback response.");
+      return res.json({ headlines: [
+        `BREAKING: Parliament session resumes to discuss national developmental goals.`,
+        `MARKET UPDATE: Sensex fluctuates amid local fiscal budget discussions.`,
+        `WEATHER UPDATE: Indian Meteorological Department issues regional rainfall outlook.`
+      ]});
+    }
+
     const ai = getAi();
     
     const prompt = `You are a major national news anchor in India (e.g., DD News or NDTV style).
@@ -374,7 +395,7 @@ Return a JSON array of strings containing 3 distinct ticker headlines. Make them
 
     const response = await callWithRetry(() => 
       ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: prompt,
         config: {
           temperature: 0.8,

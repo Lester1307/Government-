@@ -389,10 +389,31 @@ export default function App() {
         })
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+
       if (!response.ok) {
-        throw new Error(data.error || "Custom policy simulation failed.");
+        let errorMsg = "Custom policy simulation failed.";
+        if (isJson) {
+          try {
+            data = await response.json();
+            errorMsg = data.error || errorMsg;
+          } catch {
+            // ignore JSON parsing fallback error
+          }
+        } else {
+          errorMsg = `Server error (Status ${response.status})`;
+        }
+        throw new Error(errorMsg);
       }
+
+      if (isJson) {
+        data = await response.json();
+      } else {
+        throw new Error("Invalid response format from server.");
+      }
+
       setSimulatedPolicyResult(data);
     } catch (err: any) {
       console.error(err);
@@ -469,6 +490,9 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ gameState }),
       });
+      if (!response.ok) {
+        throw new Error(`Server error (Status ${response.status})`);
+      }
       const data = await response.json();
       if (data.headlines) {
         setNewsHeadlines(data.headlines);

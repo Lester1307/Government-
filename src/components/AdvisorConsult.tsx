@@ -67,9 +67,29 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
         }),
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+
       if (!response.ok) {
-        throw new Error(data.error || "Failed to receive advice from the minister.");
+        let errorMsg = "Failed to receive advice from the minister.";
+        if (isJson) {
+          try {
+            data = await response.json();
+            errorMsg = data.error || errorMsg;
+          } catch {
+            // ignore JSON parsing fallback error
+          }
+        } else {
+          errorMsg = `Server error (Status ${response.status})`;
+        }
+        throw new Error(errorMsg);
+      }
+
+      if (isJson) {
+        data = await response.json();
+      } else {
+        throw new Error("Invalid response format from server.");
       }
 
       setChats((prev) => ({
