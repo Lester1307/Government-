@@ -79,11 +79,11 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
         } else {
           // If not ok or not json, trigger the local fallback directly
           console.warn(`Advisor API response was not OK or not JSON. Using client-side fallback. Status: ${response.status}`);
-          adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState);
+          adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
         }
       } catch (fetchErr) {
         console.warn("Advisor API fetch failed. Using client-side fallback.", fetchErr);
-        adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState);
+        adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
       }
 
       setChats((prev) => ({
