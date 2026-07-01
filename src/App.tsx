@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Landmark, Users, TrendingUp, DollarSign, Award, Clock, 
   ChevronRight, ArrowUpRight, ArrowDownRight, Newspaper, AlertTriangle, 
-  Sparkles, Zap, ShieldAlert, CheckCircle2, HelpCircle, RefreshCw, LogOut, FileText
+  Sparkles, Zap, ShieldAlert, CheckCircle2, HelpCircle, RefreshCw, LogOut, FileText,
+  Menu, X, Settings
 } from "lucide-react";
 
 import { GameState, GameEvent, PreprogrammedPolicy, Sectors, Demographics } from "./types";
@@ -13,7 +14,7 @@ import BudgetSliders from "./components/BudgetSliders";
 import AdvisorConsult from "./components/AdvisorConsult";
 import AnalyticsCharts from "./components/AnalyticsCharts";
 import { getLocalPolicyFallback, getLocalNewsFallback } from "./utils/localFallbacks";
-import { getClientApiKey, clientGeminiPolicy, clientGeminiNews } from "./utils/clientGemini";
+import { getClientApiKey, setClientApiKey, clientGeminiPolicy, clientGeminiNews } from "./utils/clientGemini";
 
 export default function App() {
   // Game Setup State
@@ -30,6 +31,7 @@ export default function App() {
 
   // Active Turn State
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [activeEvent, setActiveEvent] = useState<GameEvent | null>(null);
   const [eventResult, setEventResult] = useState<{ optionText: string; narrative: string } | null>(null);
 
@@ -643,6 +645,205 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-100 font-sans relative flex flex-col justify-between">
+      {/* Drawer Overlay Backdrop & Drawer Panel */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            key="drawer-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 cursor-pointer"
+          />
+        )}
+
+        {isMenuOpen && (
+          <motion.div
+            key="drawer-panel"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+            style={{ backgroundColor: "#080b11" }}
+            className="fixed top-0 left-0 h-full w-80 border-r border-white/10 z-[51] p-6 flex flex-col justify-between overflow-y-auto font-sans shadow-2xl"
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-serif italic text-amber-500 tracking-wider flex items-center gap-2">
+                    <span>🏛️</span> RAJNITI
+                  </h2>
+                  <span className="text-[10px] text-slate-500 tracking-widest uppercase font-mono font-bold mt-0.5">
+                    v0.1 Beta
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors text-slate-400 hover:text-slate-200 cursor-pointer select-none"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Elegant divider */}
+              <div className="text-slate-700 select-none text-center font-mono text-xs tracking-tighter">
+                ──────────────────────────────
+              </div>
+
+              {/* Menu Items */}
+              <nav className="space-y-1">
+                {/* 📋 PM Desk & Crises */}
+                <button
+                  onClick={() => {
+                    setActiveTab("dashboard");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "dashboard"
+                      ? "bg-amber-500/10 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📋</span>
+                  <span>PM Desk & Crises</span>
+                </button>
+
+                {/* 👥 Cabinet Briefings */}
+                <button
+                  onClick={() => {
+                    setActiveTab("advisors");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "advisors"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">👥</span>
+                  <span>Cabinet Briefings</span>
+                </button>
+
+                {/* 📜 Policy Drafts */}
+                <button
+                  onClick={() => {
+                    setActiveTab("policies");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "policies"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📜</span>
+                  <span>Policy Drafts</span>
+                </button>
+
+                {/* 💰 Union Budget */}
+                <button
+                  onClick={() => {
+                    setActiveTab("budget");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "budget"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">💰</span>
+                  <span>Union Budget</span>
+                </button>
+
+                {/* 📈 Economic Data */}
+                <button
+                  onClick={() => {
+                    setActiveTab("analytics");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "analytics"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📈</span>
+                  <span>Economic Data</span>
+                </button>
+
+                {/* 📰 News Room */}
+                <button
+                  onClick={() => {
+                    setActiveTab("news");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "news"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📰</span>
+                  <span>News Room</span>
+                </button>
+
+                {/* 🏛️ Parliament (Coming Soon) */}
+                <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
+                  <span className="text-sm">🏛️</span>
+                  <span className="text-slate-500">Parliament (Coming Soon)</span>
+                </div>
+
+                {/* 🌍 Diplomacy (Coming Soon) */}
+                <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
+                  <span className="text-sm">🌍</span>
+                  <span className="text-slate-500">Diplomacy (Coming Soon)</span>
+                </div>
+
+                {/* ⚙️ Settings */}
+                <button
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "settings"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">⚙️</span>
+                  <span>Settings</span>
+                </button>
+
+                {/* ❓ About */}
+                <button
+                  onClick={() => {
+                    setActiveTab("about");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "about"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">❓</span>
+                  <span>About</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Bottom details inside menu */}
+            <div className="pt-6 border-t border-white/5 text-[10px] text-slate-500 space-y-1 font-mono">
+              <p className="font-bold text-slate-400">PM: {pmName}</p>
+              <p>Cabinet Focus: {cabinetFocus}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Subtle grid dots background */}
       <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: "radial-gradient(#ffffff 0.5px, transparent 0.5px)", backgroundSize: "24px 24px" }} />
       
@@ -660,18 +861,27 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <h1 className="text-2xl font-serif italic text-amber-500 tracking-wider">
-              RAJNITI
-            </h1>
-            <div className="h-6 w-[1px] bg-white/20 hidden md:block" />
-            <div>
-              <div className="text-xs text-slate-400 font-sans tracking-wide">
-                Prime Minister's Office • India
-              </div>
-              <div className="text-[10px] text-slate-500 mt-0.5 font-sans">
-                PM: <span className="text-amber-500 font-bold">{pmName}</span> • Focus:{" "}
-                <span className="text-slate-300 capitalize font-semibold">{cabinetFocus}</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 hover:bg-white/5 border border-white/10 rounded-lg transition-all text-amber-500 cursor-pointer select-none"
+              title="Open Command Center"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <h1 className="text-2xl font-serif italic text-amber-500 tracking-wider">
+                RAJNITI
+              </h1>
+              <div className="h-6 w-[1px] bg-white/20 hidden md:block" />
+              <div>
+                <div className="text-xs text-slate-400 font-sans tracking-wide">
+                  Prime Minister's Office • India
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5 font-sans">
+                  PM: <span className="text-amber-500 font-bold">{pmName}</span> • Focus:{" "}
+                  <span className="text-slate-300 capitalize font-semibold">{cabinetFocus}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -699,83 +909,8 @@ export default function App() {
       </header>
 
       {/* 2. Main Game Body Layout */}
-      <main className="max-w-7xl mx-auto px-6 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Side: Navigation Links */}
-        <nav className="lg:col-span-3 space-y-4">
-          <div className="bg-[#0a0d14] border border-white/10 rounded-xl p-3 shadow-sm space-y-1">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 py-1 mb-1 font-sans">
-              Command Deck
-            </div>
-            {[
-              { id: "dashboard", label: "PM Desk & Crises", icon: <FileText className="w-4 h-4" /> },
-              { id: "advisors", label: "Cabinet Briefings", icon: <Sparkles className="w-4 h-4" /> },
-              { id: "policies", label: "Policy Drafts", icon: <Award className="w-4 h-4" /> },
-              { id: "budget", label: "Union Budget", icon: <Landmark className="w-4 h-4" /> },
-              { id: "analytics", label: "Economic Data", icon: <TrendingUp className="w-4 h-4" /> },
-              { id: "news", label: "News Room", icon: <Newspaper className="w-4 h-4" /> },
-            ].map((tab) => {
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left py-2.5 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all ${
-                    isSelected
-                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500"
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                  }`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Election Timer widget */}
-          <div className="bg-[#0a0d14] border border-white/10 rounded-xl p-4 space-y-2.5 shadow-sm font-sans">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-amber-500">
-              Lok Sabha General Elections
-            </h4>
-            <div className="flex items-baseline space-x-1">
-              <span className="text-2xl font-serif italic text-slate-100">
-                {gameState.year === 2029 && gameState.monthIndex === 3 ? "0" : (
-                  (2029 - gameState.year) * 12 + (3 - gameState.monthIndex)
-                )}
-              </span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Months remaining</span>
-            </div>
-            <div className="w-full h-1 bg-black rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-500 transition-all duration-500"
-                style={{
-                  width: `${Math.max(
-                    0,
-                    Math.min(
-                      100,
-                      ((33 - ((2029 - gameState.year) * 12 + (3 - gameState.monthIndex))) / 33) * 100
-                    )
-                  )}%`
-                }}
-              />
-            </div>
-            <p className="text-[9px] text-slate-500 leading-relaxed">
-              Mandate scheduled for **April 2029**. Maintain average approval above **50%** to lock in an absolute parliamentary majority!
-            </p>
-          </div>
-
-          {/* Advance Month Button */}
-          <button
-            onClick={handleNextMonth}
-            className="w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-black font-extrabold rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-amber-600/10 transition-all flex items-center justify-center space-x-2"
-          >
-            <Zap className="w-4 h-4 fill-black animate-pulse" />
-            <span>Govern Next Month</span>
-          </button>
-        </nav>
-
-        {/* Right Side: Active Workspace */}
-        <div className="lg:col-span-9 space-y-6">
+      <main className="max-w-4xl mx-auto px-4 md:px-6 py-6 flex-1 w-full space-y-6">
+        <div className="space-y-6">
           {/* Main Workspace content */}
           <AnimatePresence mode="wait">
             {/* Dashboard Tab */}
@@ -823,6 +958,56 @@ export default function App() {
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Treasury</span>
                     <div className="text-xl font-bold font-mono text-slate-100">₹{gameState.treasury.toFixed(2)} L Cr</div>
                     <span className="text-[9px] text-slate-500 font-semibold uppercase">Liquidity Cushion</span>
+                  </div>
+                </div>
+
+                {/* Election Timer & Action Row */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+                  {/* Quick Election Timer widget */}
+                  <div className="bg-[#0a0d14] border border-white/10 rounded-xl p-5 md:col-span-7 flex flex-col justify-between space-y-3.5 shadow-sm font-sans">
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-amber-500 font-sans">
+                        Lok Sabha General Elections
+                      </h4>
+                      <div className="flex items-baseline space-x-2 mt-1.5">
+                        <span className="text-3xl font-serif italic text-slate-100">
+                          {gameState.year === 2029 && gameState.monthIndex === 3 ? "0" : (
+                            (2029 - gameState.year) * 12 + (3 - gameState.monthIndex)
+                          )}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-sans">Months remaining</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-full h-1.5 bg-black rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 transition-all duration-500"
+                          style={{
+                            width: `${Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                ((33 - ((2029 - gameState.year) * 12 + (3 - gameState.monthIndex))) / 33) * 100
+                              )
+                            )}%`
+                          }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-slate-400 leading-relaxed font-sans">
+                        Mandate scheduled for <strong className="text-slate-200">April 2029</strong>. Maintain average approval above <strong className="text-amber-500">50%</strong> to lock in an absolute parliamentary majority!
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Advance Month Button Section */}
+                  <div className="md:col-span-5 flex flex-col justify-center">
+                    <button
+                      onClick={handleNextMonth}
+                      className="w-full py-6 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-black font-extrabold rounded-xl text-xs uppercase tracking-widest shadow-xl shadow-amber-600/10 hover:shadow-amber-500/20 active:scale-[0.98] transition-all flex flex-col items-center justify-center gap-2 cursor-pointer select-none"
+                    >
+                      <Zap className="w-6 h-6 fill-black animate-pulse" />
+                      <span className="text-xs font-extrabold tracking-widest">Govern Next Month</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1278,6 +1463,148 @@ export default function App() {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Settings Tab */}
+            {activeTab === "settings" && (
+              <motion.div
+                key="settings"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6 font-sans"
+              >
+                <div className="bg-[#0a0d14] border border-white/10 rounded-xl p-6 shadow-lg space-y-6">
+                  <div>
+                    <h3 className="font-serif italic text-amber-500 text-lg flex items-center gap-2">
+                      <Settings className="w-5 h-5 text-amber-500" />
+                      <span>Rajniti Settings Console</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Configure your Prime Minister executive keys, save slots, and operational simulation rules.
+                    </p>
+                  </div>
+
+                  {/* Gemini API Key Block */}
+                  <div className="bg-black/40 border border-white/5 p-5 rounded-xl space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                        Gemini LLM Policy Engine Key
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      This key powers real-time Cabinet debate systems, policy sandboxes, and custom media forecasts. If you've set up your project environment secrets, you can also paste a custom user API Key here to run your simulation locally.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      <input
+                        type="password"
+                        placeholder="Paste your Gemini API Key here (AI_STUDIO_...)"
+                        defaultValue={getClientApiKey() || ""}
+                        id="userSettingsApiKeyInput"
+                        className="flex-1 bg-black/60 border border-white/10 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-200 rounded-lg px-3 py-2 text-xs focus:outline-none transition-all font-mono"
+                      />
+                      <button
+                        onClick={() => {
+                          const val = (document.getElementById("userSettingsApiKeyInput") as HTMLInputElement)?.value || "";
+                          setClientApiKey(val);
+                          setToast({
+                            message: "Gemini API credentials updated successfully!",
+                            type: "success"
+                          });
+                        }}
+                        className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-black font-extrabold uppercase tracking-widest rounded-lg text-xs transition-colors cursor-pointer select-none flex-shrink-0"
+                      >
+                        Save Credentials
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Reset & Save Management */}
+                  <div className="bg-black/40 border border-white/5 p-5 rounded-xl space-y-4">
+                    <div className="flex items-center space-x-2 text-rose-400">
+                      <AlertTriangle className="w-4 h-4" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider">
+                        Danger Zone & Reset State
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      If you want to clear your current progress, reset your Prime Minister profile, and select a new cabinet concentration, click below. This will wipe the browser's persistent cache.
+                    </p>
+
+                    <div className="flex flex-wrap gap-3 pt-1">
+                      <button
+                        onClick={handleReset}
+                        className="px-5 py-2.5 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/20 text-rose-400 font-bold uppercase tracking-wider rounded-lg text-xs transition-all cursor-pointer select-none"
+                      >
+                        Resign Prime Ministership & Reset
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* About Tab */}
+            {activeTab === "about" && (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6 font-sans"
+              >
+                <div className="bg-[#0a0d14] border border-white/10 rounded-xl p-6 shadow-lg space-y-6">
+                  {/* Decorative tricolor banner */}
+                  <div className="flex h-1 w-full rounded-t-lg overflow-hidden -mt-6 -mx-6">
+                    <div className="bg-amber-500 flex-1" />
+                    <div className="bg-slate-100 flex-1" />
+                    <div className="bg-emerald-600 flex-1" />
+                  </div>
+
+                  <div className="text-center space-y-3 pt-2">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/5 border border-white/10 text-amber-500">
+                      <Landmark className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-serif italic text-amber-500">Rajniti Simulation</h3>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">Version 0.1 Beta (Satyameva Jayate)</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
+                    <p>
+                      Welcome to <strong className="text-amber-500 font-serif italic">Rajniti</strong>, the ultimate national cabinet policy, budget, and economic roleplaying simulation where you lead India from the Prime Minister's desk.
+                    </p>
+
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider border-b border-white/5 pb-1">
+                      Gameplay Overview
+                    </h4>
+                    <ul className="list-disc pl-5 space-y-2.5">
+                      <li>
+                        <strong className="text-slate-200">The PM Desk & Crises:</strong> Each month, check if there are domestic security emergencies, public health crises, or regional disputes that require your direct legislative intervention.
+                      </li>
+                      <li>
+                        <strong className="text-slate-200">Cabinet Briefings:</strong> Consult individually with different Cabinet Ministers. Ask them practical questions on national issues (e.g., fuel transitions, digital currency, farm subsidies) to receive realistic cost breakdowns and policy analyses.
+                      </li>
+                      <li>
+                        <strong className="text-slate-200">Policy Drafting Sandbox:</strong> Draft custom bills using natural language and submit them to our Gemini policy engine to simulate and enact realistic national laws.
+                      </li>
+                      <li>
+                        <strong className="text-slate-200">Union Budget Sliders:</strong> Optimize allocations for critical sectors. Dispense regional development funds directly to key states.
+                      </li>
+                    </ul>
+
+                    <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider border-b border-white/5 pb-1 pt-2">
+                      Victory & Electoral Mandate
+                    </h4>
+                    <p>
+                      Your five-year term concludes with the general elections in <strong className="text-emerald-400">April 2029</strong>. Your seat share in the 543-member Lok Sabha is determined by your average approval across key voting blocs (Farmers, Youth, Corporate Leaders, Middle Class, Rural, and Urban). You need <strong className="text-amber-500 font-bold">272 seats</strong> to form a stable, majority government and solidify your legacy.
+                    </p>
                   </div>
                 </div>
               </motion.div>
