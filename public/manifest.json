@@ -1,0 +1,24 @@
+{
+  "name": "Lok Sabha Cabinet Simulator",
+  "short_name": "Lok Sabha PM",
+  "description": "Become the Prime Minister of India. Manage your cabinet, balance the budget, consult ministers, pass policies, and win the general elections!",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#03050a",
+  "theme_color": "#daa520",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
