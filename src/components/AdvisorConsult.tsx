@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Advisor, GameState } from "../types";
 import { ADVISORS } from "../gameData";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, ShieldAlert, Radio, HelpCircle, Loader2, Send, Trash2 } from "lucide-react";
+import { MessageSquare, ShieldAlert, Radio, HelpCircle, Loader2, Send, Trash2, Key } from "lucide-react";
 import { getLocalAdvisorFallback } from "../utils/localFallbacks";
+import { getClientApiKey, setClientApiKey, clientGeminiAdvisor } from "../utils/clientGemini";
 
 interface AdvisorConsultProps {
   gameState: GameState;
@@ -20,6 +21,8 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [clientApiKey, setClientApiKeyLocal] = useState<string>(getClientApiKey() || "");
+  const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
 
   const activeAdvisor = ADVISORS.find((a) => a.id === selectedAdvisorId) || ADVISORS[0];
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -47,43 +50,55 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
 
     try {
       let adviceText = "";
-      try {
-        const response = await fetch("/api/game/advisor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            advisorId: selectedAdvisorId,
-            gameState: {
-              year: gameState.year,
-              month: gameState.month,
-              gdp: gameState.gdp,
-              gdpGrowth: gameState.gdpGrowth,
-              inflation: gameState.inflation,
-              unemployment: gameState.unemployment,
-              treasury: gameState.treasury,
-              popularity: gameState.popularity,
-              demographics: gameState.demographics,
-              currentFocus: gameState.currentFocus,
-              activeEvents: gameState.activeEvents,
-            },
-            messages: updatedHistory,
-          }),
-        });
-
-        const contentType = response.headers.get("content-type") || "";
-        const isJson = contentType.includes("application/json");
-
-        if (response.ok && isJson) {
-          const data = await response.json();
-          adviceText = data.advice;
-        } else {
-          // If not ok or not json, trigger the local fallback directly
-          console.warn(`Advisor API response was not OK or not JSON. Using client-side fallback. Status: ${response.status}`);
+      
+      // Check if we can use client-side Gemini directly
+      if (clientApiKey) {
+        try {
+          adviceText = await clientGeminiAdvisor(selectedAdvisorId, gameState, updatedHistory);
+        } catch (clientGeminiErr: any) {
+          console.warn("Client-side direct Gemini call failed, falling back to local simulation.", clientGeminiErr);
           adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
         }
-      } catch (fetchErr) {
-        console.warn("Advisor API fetch failed. Using client-side fallback.", fetchErr);
-        adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
+      } else {
+        // Fallback to server route
+        try {
+          const response = await fetch("/api/game/advisor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              advisorId: selectedAdvisorId,
+              gameState: {
+                year: gameState.year,
+                month: gameState.month,
+                gdp: gameState.gdp,
+                gdpGrowth: gameState.gdpGrowth,
+                inflation: gameState.inflation,
+                unemployment: gameState.unemployment,
+                treasury: gameState.treasury,
+                popularity: gameState.popularity,
+                demographics: gameState.demographics,
+                currentFocus: gameState.currentFocus,
+                activeEvents: gameState.activeEvents,
+              },
+              messages: updatedHistory,
+            }),
+          });
+
+          const contentType = response.headers.get("content-type") || "";
+          const isJson = contentType.includes("application/json");
+
+          if (response.ok && isJson) {
+            const data = await response.json();
+            adviceText = data.advice;
+          } else {
+            // If not ok or not json, trigger the local fallback directly
+            console.warn(`Advisor API response was not OK or not JSON. Using client-side fallback. Status: ${response.status}`);
+            adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
+          }
+        } catch (fetchErr) {
+          console.warn("Advisor API fetch failed. Using client-side fallback.", fetchErr);
+          adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState, textToSend);
+        }
       }
 
       setChats((prev) => ({
@@ -197,16 +212,66 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
             Summon your key Ministers to hold realistic, interactive, two-way strategic dialogues on economic, security, and development issues.
           </p>
         </div>
-        {currentMessages.length > 0 && (
+        <div className="flex items-center space-x-2.5">
           <button
-            onClick={handleClearChat}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-950/30 border border-rose-900/40 text-rose-400 hover:bg-rose-900/20 text-xs rounded-lg transition-all"
+            onClick={() => setShowKeyInput(!showKeyInput)}
+            className={`flex items-center space-x-1.5 px-3 py-1.5 border text-xs rounded-lg transition-all ${
+              clientApiKey
+                ? "bg-emerald-950/30 border-emerald-900/40 text-emerald-400 hover:bg-emerald-900/20"
+                : "bg-amber-950/20 border-amber-900/30 text-amber-400 hover:bg-amber-900/10"
+            }`}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>Reset Dialogue</span>
+            <Key className="w-3.5 h-3.5" />
+            <span>{clientApiKey ? "Gemini Key: Configured" : "Configure Gemini Key"}</span>
           </button>
-        )}
+          {currentMessages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-rose-950/30 border border-rose-900/40 text-rose-400 hover:bg-rose-900/20 text-xs rounded-lg transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Reset Dialogue</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Client-Side API Key Configuration Panel */}
+      <AnimatePresence>
+        {showKeyInput && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl flex flex-col sm:flex-row items-center gap-3 overflow-hidden"
+          >
+            <div className="flex-1 text-xs text-slate-300">
+              <span className="font-bold text-amber-500 block mb-1">🔑 Static Hosting/GitHub Pages Custom API Key</span>
+              Paste your personal Gemini API Key here to use real-time AI conversations directly from your browser.
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="password"
+                placeholder="AIzaSy..."
+                value={clientApiKey}
+                onChange={(e) => {
+                  setClientApiKeyLocal(e.target.value);
+                  setClientApiKey(e.target.value);
+                }}
+                className="bg-black/50 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 w-full sm:w-56"
+              />
+              <button
+                onClick={() => {
+                  setShowKeyInput(false);
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-black rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+              >
+                Apply Key
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans">
         {/* Ministers Selector List */}

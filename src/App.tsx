@@ -13,6 +13,7 @@ import BudgetSliders from "./components/BudgetSliders";
 import AdvisorConsult from "./components/AdvisorConsult";
 import AnalyticsCharts from "./components/AnalyticsCharts";
 import { getLocalPolicyFallback, getLocalNewsFallback } from "./utils/localFallbacks";
+import { getClientApiKey, clientGeminiPolicy, clientGeminiNews } from "./utils/clientGemini";
 
 export default function App() {
   // Game Setup State
@@ -463,36 +464,47 @@ export default function App() {
 
     try {
       let policyResult = null;
-      try {
-        const response = await fetch("/api/game/custom-policy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            policyText: customPolicyText,
-            gameState: {
-              gdp: gameState.gdp,
-              gdpGrowth: gameState.gdpGrowth,
-              inflation: gameState.inflation,
-              unemployment: gameState.unemployment,
-              treasury: gameState.treasury,
-              popularity: gameState.popularity,
-              demographics: gameState.demographics,
-            }
-          })
-        });
+      const clientKey = getClientApiKey();
 
-        const contentType = response.headers.get("content-type") || "";
-        const isJson = contentType.includes("application/json");
-
-        if (response.ok && isJson) {
-          policyResult = await response.json();
-        } else {
-          console.warn(`Custom policy API failed (Status: ${response.status}). Using local policy fallback.`);
+      if (clientKey) {
+        try {
+          policyResult = await clientGeminiPolicy(customPolicyText, gameState);
+        } catch (clientErr) {
+          console.warn("Client-side direct custom policy evaluation failed, falling back to local simulation.", clientErr);
           policyResult = getLocalPolicyFallback(customPolicyText, gameState);
         }
-      } catch (fetchErr) {
-        console.warn("Custom policy API fetch failed. Using local policy fallback.", fetchErr);
-        policyResult = getLocalPolicyFallback(customPolicyText, gameState);
+      } else {
+        try {
+          const response = await fetch("/api/game/custom-policy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              policyText: customPolicyText,
+              gameState: {
+                gdp: gameState.gdp,
+                gdpGrowth: gameState.gdpGrowth,
+                inflation: gameState.inflation,
+                unemployment: gameState.unemployment,
+                treasury: gameState.treasury,
+                popularity: gameState.popularity,
+                demographics: gameState.demographics,
+              }
+            })
+          });
+
+          const contentType = response.headers.get("content-type") || "";
+          const isJson = contentType.includes("application/json");
+
+          if (response.ok && isJson) {
+            policyResult = await response.json();
+          } else {
+            console.warn(`Custom policy API failed (Status: ${response.status}). Using local policy fallback.`);
+            policyResult = getLocalPolicyFallback(customPolicyText, gameState);
+          }
+        } catch (fetchErr) {
+          console.warn("Custom policy API fetch failed. Using local policy fallback.", fetchErr);
+          policyResult = getLocalPolicyFallback(customPolicyText, gameState);
+        }
       }
 
       setSimulatedPolicyResult(policyResult);
@@ -567,25 +579,36 @@ export default function App() {
     setNewsLoading(true);
     try {
       let headlines = [];
-      try {
-        const response = await fetch("/api/game/news-flash", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ gameState }),
-        });
-        const contentType = response.headers.get("content-type") || "";
-        const isJson = contentType.includes("application/json");
+      const clientKey = getClientApiKey();
 
-        if (response.ok && isJson) {
-          const data = await response.json();
-          headlines = data.headlines || [];
-        } else {
-          console.warn(`News flash API failed (Status: ${response.status}). Using local news fallback.`);
+      if (clientKey) {
+        try {
+          headlines = await clientGeminiNews(gameState);
+        } catch (clientErr) {
+          console.warn("Client-side direct news flash generation failed, falling back to local simulation.", clientErr);
           headlines = getLocalNewsFallback(gameState);
         }
-      } catch (fetchErr) {
-        console.warn("News flash API fetch failed. Using local news fallback.", fetchErr);
-        headlines = getLocalNewsFallback(gameState);
+      } else {
+        try {
+          const response = await fetch("/api/game/news-flash", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gameState }),
+          });
+          const contentType = response.headers.get("content-type") || "";
+          const isJson = contentType.includes("application/json");
+
+          if (response.ok && isJson) {
+            const data = await response.json();
+            headlines = data.headlines || [];
+          } else {
+            console.warn(`News flash API failed (Status: ${response.status}). Using local news fallback.`);
+            headlines = getLocalNewsFallback(gameState);
+          }
+        } catch (fetchErr) {
+          console.warn("News flash API fetch failed. Using local news fallback.", fetchErr);
+          headlines = getLocalNewsFallback(gameState);
+        }
       }
 
       if (headlines && headlines.length > 0) {
@@ -1135,11 +1158,37 @@ export default function App() {
                   currentSectors={gameState.sectors}
                   gdp={gameState.gdp}
                   politicalCapital={gameState.politicalCapital}
+                  treasury={gameState.treasury}
+                  demographics={gameState.demographics}
                   onSaveBudget={(newSectors) => {
                     setGameState((prev) => ({
                       ...prev,
                       sectors: newSectors,
                     }));
+                  }}
+                  onApplyRegionalAllocation={(cost, pcCost, demographicImpact, stateName) => {
+                    setGameState((prev) => {
+                      const updatedDemographics = { ...prev.demographics };
+                      for (const key of Object.keys(demographicImpact)) {
+                        if (key in updatedDemographics) {
+                          const typedKey = key as keyof typeof updatedDemographics;
+                          updatedDemographics[typedKey] = Math.max(
+                            0,
+                            Math.min(100, updatedDemographics[typedKey] + demographicImpact[key])
+                          );
+                        }
+                      }
+                      return {
+                        ...prev,
+                        treasury: Math.max(0, prev.treasury - cost),
+                        politicalCapital: Math.max(0, prev.politicalCapital - pcCost),
+                        demographics: updatedDemographics,
+                      };
+                    });
+                    setToast({
+                      message: `Successfully dispatched ₹${cost.toFixed(2)} L Cr regional development funds to ${stateName}.`,
+                      type: "success"
+                    });
                   }}
                 />
               </motion.div>
