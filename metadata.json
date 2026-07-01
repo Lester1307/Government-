@@ -1,0 +1,6 @@
+{
+  "name": "Indian Government Simulator",
+  "description": "A comprehensive government simulation game of India where you manage the economy, draft policies, allocate state budgets, deal with historical events, and consult AI cabinet advisors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
