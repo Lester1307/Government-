@@ -648,201 +648,199 @@ export default function App() {
       {/* Drawer Overlay Backdrop & Drawer Panel */}
       <AnimatePresence>
         {isMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="drawer-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 cursor-pointer"
-            />
+          <motion.div
+            key="drawer-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 cursor-pointer"
+          />
+        )}
 
-            {/* Slide-out Drawer Panel */}
-            <motion.div
-              key="drawer-panel"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              style={{ backgroundColor: "#080b11" }}
-              className="fixed top-0 left-0 h-full w-80 bg-[#080b11] border-r border-white/10 z-[51] p-6 flex flex-col justify-between overflow-y-auto font-sans shadow-2xl"
-            >
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <h2 className="text-xl font-serif italic text-amber-500 tracking-wider flex items-center gap-2">
-                      <span>🏛️</span> RAJNITI
-                    </h2>
-                    <span className="text-[10px] text-slate-500 tracking-widest uppercase font-mono font-bold mt-0.5">
-                      v0.1 Beta
-                    </span>
-                  </div>
-                  <button 
-                    onClick={() => setIsMenuOpen(false)}
-                    className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors text-slate-400 hover:text-slate-200 cursor-pointer select-none"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+        {isMenuOpen && (
+          <motion.div
+            key="drawer-panel"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+            style={{ backgroundColor: "#080b11" }}
+            className="fixed top-0 left-0 h-full w-80 bg-[#080b11] border-r border-white/10 z-[51] p-6 flex flex-col justify-between overflow-y-auto font-sans shadow-2xl"
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <h2 className="text-xl font-serif italic text-amber-500 tracking-wider flex items-center gap-2">
+                    <span>🏛️</span> RAJNITI
+                  </h2>
+                  <span className="text-[10px] text-slate-500 tracking-widest uppercase font-mono font-bold mt-0.5">
+                    v0.1 Beta
+                  </span>
                 </div>
-
-                {/* Elegant divider */}
-                <div className="text-slate-700 select-none text-center font-mono text-xs tracking-tighter">
-                  ──────────────────────────────
-                </div>
-
-                {/* Menu Items */}
-                <nav className="space-y-1">
-                  {/* 📋 PM Desk & Crises */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("dashboard");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "dashboard"
-                        ? "bg-amber-500/10 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">📋</span>
-                    <span>PM Desk & Crises</span>
-                  </button>
-
-                  {/* 👥 Cabinet Briefings */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("advisors");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "advisors"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">👥</span>
-                    <span>Cabinet Briefings</span>
-                  </button>
-
-                  {/* 📜 Policy Drafts */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("policies");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "policies"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">📜</span>
-                    <span>Policy Drafts</span>
-                  </button>
-
-                  {/* 💰 Union Budget */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("budget");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "budget"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">💰</span>
-                    <span>Union Budget</span>
-                  </button>
-
-                  {/* 📈 Economic Data */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("analytics");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "analytics"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">📈</span>
-                    <span>Economic Data</span>
-                  </button>
-
-                  {/* 📰 News Room */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("news");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "news"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">📰</span>
-                    <span>News Room</span>
-                  </button>
-
-                  {/* 🏛️ Parliament (Coming Soon) */}
-                  <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
-                    <span className="text-sm">🏛️</span>
-                    <span className="text-slate-500">Parliament (Coming Soon)</span>
-                  </div>
-
-                  {/* 🌍 Diplomacy (Coming Soon) */}
-                  <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
-                    <span className="text-sm">🌍</span>
-                    <span className="text-slate-500">Diplomacy (Coming Soon)</span>
-                  </div>
-
-                  {/* ⚙️ Settings */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("settings");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "settings"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">⚙️</span>
-                    <span>Settings</span>
-                  </button>
-
-                  {/* ❓ About */}
-                  <button
-                    onClick={() => {
-                      setActiveTab("about");
-                      setIsMenuOpen(false);
-                    }}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
-                      activeTab === "about"
-                        ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
-                        : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                    }`}
-                  >
-                    <span className="text-sm">❓</span>
-                    <span>About</span>
-                  </button>
-                </nav>
+                <button 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors text-slate-400 hover:text-slate-200 cursor-pointer select-none"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Bottom details inside menu */}
-              <div className="pt-6 border-t border-white/5 text-[10px] text-slate-500 space-y-1 font-mono">
-                <p className="font-bold text-slate-400">PM: {pmName}</p>
-                <p>Cabinet Focus: {cabinetFocus}</p>
+              {/* Elegant divider */}
+              <div className="text-slate-700 select-none text-center font-mono text-xs tracking-tighter">
+                ──────────────────────────────
               </div>
-            </motion.div>
-          </>
+
+              {/* Menu Items */}
+              <nav className="space-y-1">
+                {/* 📋 PM Desk & Crises */}
+                <button
+                  onClick={() => {
+                    setActiveTab("dashboard");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "dashboard"
+                      ? "bg-amber-500/10 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📋</span>
+                  <span>PM Desk & Crises</span>
+                </button>
+
+                {/* 👥 Cabinet Briefings */}
+                <button
+                  onClick={() => {
+                    setActiveTab("advisors");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "advisors"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">👥</span>
+                  <span>Cabinet Briefings</span>
+                </button>
+
+                {/* 📜 Policy Drafts */}
+                <button
+                  onClick={() => {
+                    setActiveTab("policies");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "policies"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📜</span>
+                  <span>Policy Drafts</span>
+                </button>
+
+                {/* 💰 Union Budget */}
+                <button
+                  onClick={() => {
+                    setActiveTab("budget");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "budget"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">💰</span>
+                  <span>Union Budget</span>
+                </button>
+
+                {/* 📈 Economic Data */}
+                <button
+                  onClick={() => {
+                    setActiveTab("analytics");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "analytics"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📈</span>
+                  <span>Economic Data</span>
+                </button>
+
+                {/* 📰 News Room */}
+                <button
+                  onClick={() => {
+                    setActiveTab("news");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "news"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">📰</span>
+                  <span>News Room</span>
+                </button>
+
+                {/* 🏛️ Parliament (Coming Soon) */}
+                <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
+                  <span className="text-sm">🏛️</span>
+                  <span className="text-slate-500">Parliament (Coming Soon)</span>
+                </div>
+
+                {/* 🌍 Diplomacy (Coming Soon) */}
+                <div className="w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 opacity-40 select-none cursor-not-allowed">
+                  <span className="text-sm">🌍</span>
+                  <span className="text-slate-500">Diplomacy (Coming Soon)</span>
+                </div>
+
+                {/* ⚙️ Settings */}
+                <button
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "settings"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">⚙️</span>
+                  <span>Settings</span>
+                </button>
+
+                {/* ❓ About */}
+                <button
+                  onClick={() => {
+                    setActiveTab("about");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center space-x-2.5 transition-all cursor-pointer select-none ${
+                    activeTab === "about"
+                      ? "bg-white/5 text-amber-500 border-l-2 border-l-amber-500 font-extrabold"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  }`}
+                >
+                  <span className="text-sm">❓</span>
+                  <span>About</span>
+                </button>
+              </nav>
+            </div>
+
+            {/* Bottom details inside menu */}
+            <div className="pt-6 border-t border-white/5 text-[10px] text-slate-500 space-y-1 font-mono">
+              <p className="font-bold text-slate-400">PM: {pmName}</p>
+              <p>Cabinet Focus: {cabinetFocus}</p>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
