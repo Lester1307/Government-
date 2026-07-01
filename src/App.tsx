@@ -12,6 +12,7 @@ import WelcomeScreen from "./components/WelcomeScreen";
 import BudgetSliders from "./components/BudgetSliders";
 import AdvisorConsult from "./components/AdvisorConsult";
 import AnalyticsCharts from "./components/AnalyticsCharts";
+import { getLocalPolicyFallback, getLocalNewsFallback } from "./utils/localFallbacks";
 
 export default function App() {
   // Game Setup State
@@ -372,49 +373,40 @@ export default function App() {
     setSimulatedPolicyResult(null);
 
     try {
-      const response = await fetch("/api/game/custom-policy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          policyText: customPolicyText,
-          gameState: {
-            gdp: gameState.gdp,
-            gdpGrowth: gameState.gdpGrowth,
-            inflation: gameState.inflation,
-            unemployment: gameState.unemployment,
-            treasury: gameState.treasury,
-            popularity: gameState.popularity,
-            demographics: gameState.demographics,
-          }
-        })
-      });
+      let policyResult = null;
+      try {
+        const response = await fetch("/api/game/custom-policy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            policyText: customPolicyText,
+            gameState: {
+              gdp: gameState.gdp,
+              gdpGrowth: gameState.gdpGrowth,
+              inflation: gameState.inflation,
+              unemployment: gameState.unemployment,
+              treasury: gameState.treasury,
+              popularity: gameState.popularity,
+              demographics: gameState.demographics,
+            }
+          })
+        });
 
-      let data;
-      const contentType = response.headers.get("content-type") || "";
-      const isJson = contentType.includes("application/json");
+        const contentType = response.headers.get("content-type") || "";
+        const isJson = contentType.includes("application/json");
 
-      if (!response.ok) {
-        let errorMsg = "Custom policy simulation failed.";
-        if (isJson) {
-          try {
-            data = await response.json();
-            errorMsg = data.error || errorMsg;
-          } catch {
-            // ignore JSON parsing fallback error
-          }
+        if (response.ok && isJson) {
+          policyResult = await response.json();
         } else {
-          errorMsg = `Server error (Status ${response.status})`;
+          console.warn(`Custom policy API failed (Status: ${response.status}). Using local policy fallback.`);
+          policyResult = getLocalPolicyFallback(customPolicyText, gameState);
         }
-        throw new Error(errorMsg);
+      } catch (fetchErr) {
+        console.warn("Custom policy API fetch failed. Using local policy fallback.", fetchErr);
+        policyResult = getLocalPolicyFallback(customPolicyText, gameState);
       }
 
-      if (isJson) {
-        data = await response.json();
-      } else {
-        throw new Error("Invalid response format from server.");
-      }
-
-      setSimulatedPolicyResult(data);
+      setSimulatedPolicyResult(policyResult);
     } catch (err: any) {
       console.error(err);
       setSimulationError(err.message || "Failed to reach policy evaluation servers. Ensure Gemini API key is valid.");
@@ -485,17 +477,30 @@ export default function App() {
   const handleFetchNews = async () => {
     setNewsLoading(true);
     try {
-      const response = await fetch("/api/game/news-flash", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameState }),
-      });
-      if (!response.ok) {
-        throw new Error(`Server error (Status ${response.status})`);
+      let headlines = [];
+      try {
+        const response = await fetch("/api/game/news-flash", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameState }),
+        });
+        const contentType = response.headers.get("content-type") || "";
+        const isJson = contentType.includes("application/json");
+
+        if (response.ok && isJson) {
+          const data = await response.json();
+          headlines = data.headlines || [];
+        } else {
+          console.warn(`News flash API failed (Status: ${response.status}). Using local news fallback.`);
+          headlines = getLocalNewsFallback(gameState);
+        }
+      } catch (fetchErr) {
+        console.warn("News flash API fetch failed. Using local news fallback.", fetchErr);
+        headlines = getLocalNewsFallback(gameState);
       }
-      const data = await response.json();
-      if (data.headlines) {
-        setNewsHeadlines(data.headlines);
+
+      if (headlines && headlines.length > 0) {
+        setNewsHeadlines(headlines);
       }
     } catch (err) {
       console.error(err);

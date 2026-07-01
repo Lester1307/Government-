@@ -3,6 +3,7 @@ import { Advisor, GameState } from "../types";
 import { ADVISORS } from "../gameData";
 import { motion, AnimatePresence } from "motion/react";
 import { MessageSquare, ShieldAlert, Radio, HelpCircle, Loader2, Send, Trash2 } from "lucide-react";
+import { getLocalAdvisorFallback } from "../utils/localFallbacks";
 
 interface AdvisorConsultProps {
   gameState: GameState;
@@ -45,56 +46,49 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
     setError("");
 
     try {
-      const response = await fetch("/api/game/advisor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          advisorId: selectedAdvisorId,
-          gameState: {
-            year: gameState.year,
-            month: gameState.month,
-            gdp: gameState.gdp,
-            gdpGrowth: gameState.gdpGrowth,
-            inflation: gameState.inflation,
-            unemployment: gameState.unemployment,
-            treasury: gameState.treasury,
-            popularity: gameState.popularity,
-            demographics: gameState.demographics,
-            currentFocus: gameState.currentFocus,
-            activeEvents: gameState.activeEvents,
-          },
-          messages: updatedHistory,
-        }),
-      });
+      let adviceText = "";
+      try {
+        const response = await fetch("/api/game/advisor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            advisorId: selectedAdvisorId,
+            gameState: {
+              year: gameState.year,
+              month: gameState.month,
+              gdp: gameState.gdp,
+              gdpGrowth: gameState.gdpGrowth,
+              inflation: gameState.inflation,
+              unemployment: gameState.unemployment,
+              treasury: gameState.treasury,
+              popularity: gameState.popularity,
+              demographics: gameState.demographics,
+              currentFocus: gameState.currentFocus,
+              activeEvents: gameState.activeEvents,
+            },
+            messages: updatedHistory,
+          }),
+        });
 
-      let data;
-      const contentType = response.headers.get("content-type") || "";
-      const isJson = contentType.includes("application/json");
+        const contentType = response.headers.get("content-type") || "";
+        const isJson = contentType.includes("application/json");
 
-      if (!response.ok) {
-        let errorMsg = "Failed to receive advice from the minister.";
-        if (isJson) {
-          try {
-            data = await response.json();
-            errorMsg = data.error || errorMsg;
-          } catch {
-            // ignore JSON parsing fallback error
-          }
+        if (response.ok && isJson) {
+          const data = await response.json();
+          adviceText = data.advice;
         } else {
-          errorMsg = `Server error (Status ${response.status})`;
+          // If not ok or not json, trigger the local fallback directly
+          console.warn(`Advisor API response was not OK or not JSON. Using client-side fallback. Status: ${response.status}`);
+          adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState);
         }
-        throw new Error(errorMsg);
-      }
-
-      if (isJson) {
-        data = await response.json();
-      } else {
-        throw new Error("Invalid response format from server.");
+      } catch (fetchErr) {
+        console.warn("Advisor API fetch failed. Using client-side fallback.", fetchErr);
+        adviceText = getLocalAdvisorFallback(selectedAdvisorId, gameState);
       }
 
       setChats((prev) => ({
         ...prev,
-        [selectedAdvisorId]: [...updatedHistory, { role: "assistant", text: data.advice }],
+        [selectedAdvisorId]: [...updatedHistory, { role: "assistant", text: adviceText }],
       }));
     } catch (err: any) {
       console.error(err);
