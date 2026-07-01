@@ -54,6 +54,78 @@ export default function App() {
   ]);
   const [newsLoading, setNewsLoading] = useState<boolean>(false);
 
+  // Toast state to replace unsafe window.alerts in iframe sandbox
+  const [toast, setToast] = useState<{ message: string; type: "success" | "warning" | "error" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "warning" | "error" | "info" = "info") => {
+    setToast({ message, type });
+  };
+
+  // Auto-clear toast after 4 seconds
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Auto-save game state on change
+  useEffect(() => {
+    if (!pmName) return; // Don't save if not started
+    try {
+      const dataToSave = {
+        pmName,
+        cabinetFocus,
+        gameState,
+        isGameOver,
+        gameOverResult,
+        activeTab,
+        activeEvent,
+        eventResult,
+        passedPolicies,
+        newsHeadlines
+      };
+      localStorage.setItem("loksabha_cabinet_simulator_save_v1", JSON.stringify(dataToSave));
+    } catch (e) {
+      console.error("Failed to auto-save game state", e);
+    }
+  }, [pmName, cabinetFocus, gameState, isGameOver, gameOverResult, activeTab, activeEvent, eventResult, passedPolicies, newsHeadlines]);
+
+  const handleContinueGame = () => {
+    try {
+      const savedData = localStorage.getItem("loksabha_cabinet_simulator_save_v1");
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed.pmName && parsed.gameState) {
+          setPmName(parsed.pmName);
+          setCabinetFocus(parsed.cabinetFocus || "balanced");
+          setGameState(parsed.gameState);
+          setIsGameOver(!!parsed.isGameOver);
+          setGameOverResult(parsed.gameOverResult || null);
+          setActiveTab(parsed.activeTab || "dashboard");
+          setActiveEvent(parsed.activeEvent || null);
+          setEventResult(parsed.eventResult || null);
+          setPassedPolicies(parsed.passedPolicies || []);
+          if (parsed.newsHeadlines) {
+            setNewsHeadlines(parsed.newsHeadlines);
+          }
+          // Use setTimeout to allow the UI to mount before showing toast
+          setTimeout(() => {
+            showToast(`Welcome back, Prime Minister ${parsed.pmName}! Your cabinet has reconvened.`, "success");
+          }, 100);
+        } else {
+          showToast("No valid save file found or data is corrupted.", "error");
+        }
+      } else {
+        showToast("No previous save file found.", "warning");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Failed to load saved state.", "error");
+    }
+  };
+
   // Effect to apply starting focus benefits
   const handleStartGame = (name: string, focusId: string) => {
     setPmName(name);
@@ -83,7 +155,7 @@ export default function App() {
   // Turn calculation logic
   const handleNextMonth = () => {
     if (activeEvent && !eventResult) {
-      alert("A critical national crisis is unfolding! Please resolve the active event first.");
+      showToast("A critical national crisis is unfolding! Please resolve the active event first.", "warning");
       return;
     }
 
@@ -271,7 +343,7 @@ export default function App() {
   // Option select for crises events
   const handleResolveEvent = (option: any) => {
     if (gameState.politicalCapital < option.politicalCapitalCost) {
-      alert("You do not have enough Political Capital to choose this solution!");
+      showToast("You do not have enough Political Capital to choose this solution!", "warning");
       return;
     }
 
@@ -315,11 +387,11 @@ export default function App() {
   // Draft pre-programmed bills
   const handleDraftPreprogrammed = (policy: PreprogrammedPolicy) => {
     if (gameState.politicalCapital < policy.politicalCapitalCost) {
-      alert("Insufficient Political Capital!");
+      showToast("Insufficient Political Capital!", "warning");
       return;
     }
     if (gameState.treasury < policy.cost) {
-      alert("The National Treasury lacks the liquid funds to finance this scheme! Free up sector budgets or wait for tax surpluses.");
+      showToast("The National Treasury lacks the liquid funds to finance this scheme! Free up sector budgets or wait for tax surpluses.", "error");
       return;
     }
 
@@ -362,7 +434,7 @@ export default function App() {
       }
     ]);
 
-    alert(`Successfully enacted into Law: ${policy.title}!`);
+    showToast(`Successfully enacted into Law: ${policy.title}!`, "success");
   };
 
   // Custom Policy AI Sandbox simulator
@@ -422,11 +494,11 @@ export default function App() {
     const cost = simulatedPolicyResult.fiscalCost;
     // Require at least 15 PC for custom draft
     if (gameState.politicalCapital < 15) {
-      alert("Drafting unique custom bills requires at least 15 Political Capital!");
+      showToast("Drafting unique custom bills requires at least 15 Political Capital!", "warning");
       return;
     }
     if (gameState.treasury < cost) {
-      alert("Insufficient national funds to support this budget allocation!");
+      showToast("Insufficient national funds to support this budget allocation!", "error");
       return;
     }
 
@@ -468,7 +540,7 @@ export default function App() {
       }
     ]);
 
-    alert(`Successfully signed and gazetted: ${simulatedPolicyResult.policyName}!`);
+    showToast(`Successfully signed and gazetted: ${simulatedPolicyResult.policyName}!`, "success");
     setSimulatedPolicyResult(null);
     setCustomPolicyText("");
   };
@@ -526,7 +598,7 @@ export default function App() {
 
   // If no name entered, render Oath / Welcome Screen
   if (!pmName) {
-    return <WelcomeScreen onStartGame={handleStartGame} />;
+    return <WelcomeScreen onStartGame={handleStartGame} onContinueGame={handleContinueGame} />;
   }
 
   return (
@@ -1229,6 +1301,50 @@ export default function App() {
                   Draft New Cabinet / Play Again
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification Container */}
+      <AnimatePresence>
+        {toast && (
+          <div className="fixed bottom-6 right-6 z-[100] max-w-sm font-sans pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className={`p-4 rounded-xl border backdrop-blur-md shadow-2xl flex items-start space-x-3 pointer-events-auto ${
+                toast.type === "success"
+                  ? "bg-emerald-950/80 border-emerald-500/30 text-emerald-200"
+                  : toast.type === "warning"
+                  ? "bg-amber-950/80 border-amber-500/30 text-amber-200"
+                  : toast.type === "error"
+                  ? "bg-rose-950/80 border-rose-500/30 text-rose-200"
+                  : "bg-blue-950/80 border-blue-500/30 text-blue-200"
+              }`}
+            >
+              <div className="mt-0.5">
+                {toast.type === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                {toast.type === "warning" && <AlertTriangle className="w-5 h-5 text-amber-400" />}
+                {toast.type === "error" && <ShieldAlert className="w-5 h-5 text-rose-400" />}
+                {toast.type === "info" && <Sparkles className="w-5 h-5 text-blue-400" />}
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-60">
+                  {toast.type === "success" && "Success"}
+                  {toast.type === "warning" && "Warning"}
+                  {toast.type === "error" && "Error"}
+                  {toast.type === "info" && "Cabinet Bulletin"}
+                </p>
+                <p className="text-sm font-medium mt-1 leading-relaxed text-white">{toast.message}</p>
+              </div>
+              <button
+                onClick={() => setToast(null)}
+                className="text-white/40 hover:text-white/80 transition-colors text-xs font-bold leading-none p-1"
+              >
+                ✕
+              </button>
             </motion.div>
           </div>
         )}

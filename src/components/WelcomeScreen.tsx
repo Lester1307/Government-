@@ -1,14 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Flame, ShieldCheck, Landmark, Users } from "lucide-react";
+import { Flame, ShieldCheck, Landmark, Users, RefreshCw } from "lucide-react";
 
 interface WelcomeScreenProps {
   onStartGame: (pmName: string, focusId: string) => void;
+  onContinueGame: () => void;
 }
 
-export default function WelcomeScreen({ onStartGame }: WelcomeScreenProps) {
+export default function WelcomeScreen({ onStartGame, onContinueGame }: WelcomeScreenProps) {
   const [pmName, setPmName] = useState("");
   const [selectedFocus, setSelectedFocus] = useState("balanced");
+  const [hasSavedGame, setHasSavedGame] = useState(false);
+  const [savedInfo, setSavedInfo] = useState<{ pmName: string; month: string; year: number } | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem("loksabha_cabinet_simulator_save_v1");
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        if (parsed.pmName && parsed.gameState) {
+          setHasSavedGame(true);
+          setSavedInfo({
+            pmName: parsed.pmName,
+            month: parsed.gameState.month,
+            year: parsed.gameState.year
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error checking saved game in WelcomeScreen", e);
+    }
+  }, []);
 
   const ideologicalFocuses = [
     {
@@ -128,17 +150,32 @@ export default function WelcomeScreen({ onStartGame }: WelcomeScreenProps) {
           </div>
 
           {/* Oath Action */}
-          <div className="pt-4 text-center">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={!pmName.trim()}
-              className="w-full md:w-auto md:px-12 py-4 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-black font-extrabold text-xs uppercase tracking-widest rounded-lg shadow-lg shadow-amber-600/10 transition-all flex items-center justify-center space-x-2 mx-auto"
-            >
-              <Flame className="w-5 h-5 fill-black" />
-              <span>Take Oath of Office</span>
-            </motion.button>
+          <div className="pt-4 text-center space-y-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+              {hasSavedGame && savedInfo && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={onContinueGame}
+                  className="w-full md:w-auto md:px-8 py-4 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-white/10 font-extrabold text-xs uppercase tracking-widest rounded-lg flex items-center justify-center space-x-2 transition-all shadow-md"
+                >
+                  <RefreshCw className="w-4 h-4 text-amber-500 animate-[spin_4s_linear_infinite]" />
+                  <span>Resume Game: PM {savedInfo.pmName} ({savedInfo.month} {savedInfo.year})</span>
+                </motion.button>
+              )}
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={!pmName.trim()}
+                className="w-full md:w-auto md:px-12 py-4 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-black font-extrabold text-xs uppercase tracking-widest rounded-lg shadow-lg shadow-amber-600/10 transition-all flex items-center justify-center space-x-2"
+              >
+                <Flame className="w-5 h-5 fill-black" />
+                <span>Take Oath of Office</span>
+              </motion.button>
+            </div>
             <p className="text-slate-500 text-[10px] mt-3 font-sans">
               By taking oath, you agree to protect the sovereignty, unity, and integrity of India.
             </p>
