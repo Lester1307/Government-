@@ -18,7 +18,7 @@ export default function WelcomeScreen({ onStartGame, onContinueGame }: WelcomeSc
       const savedData = localStorage.getItem("loksabha_cabinet_simulator_save_v1");
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        if (parsed.pmName && parsed.gameState) {
+        if (parsed && parsed.pmName && parsed.gameState) {
           setHasSavedGame(true);
           setSavedInfo({
             pmName: parsed.pmName,

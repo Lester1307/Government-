@@ -97,10 +97,27 @@ export default function App() {
       const savedData = localStorage.getItem("loksabha_cabinet_simulator_save_v1");
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        if (parsed.pmName && parsed.gameState) {
+        if (parsed && parsed.pmName && parsed.gameState) {
           setPmName(parsed.pmName);
           setCabinetFocus(parsed.cabinetFocus || "balanced");
-          setGameState(parsed.gameState);
+          
+          // Deep merge loaded gameState with INITIAL_STATE to prevent crashes from missing attributes
+          const mergedGameState = {
+            ...INITIAL_STATE,
+            ...parsed.gameState,
+            demographics: {
+              ...INITIAL_STATE.demographics,
+              ...(parsed.gameState?.demographics || {})
+            },
+            sectors: {
+              ...INITIAL_STATE.sectors,
+              ...(parsed.gameState?.sectors || {})
+            },
+            history: parsed.gameState?.history || INITIAL_STATE.history,
+            activeEvents: parsed.gameState?.activeEvents || INITIAL_STATE.activeEvents
+          };
+
+          setGameState(mergedGameState);
           setIsGameOver(!!parsed.isGameOver);
           setGameOverResult(parsed.gameOverResult || null);
           setActiveTab(parsed.activeTab || "dashboard");
