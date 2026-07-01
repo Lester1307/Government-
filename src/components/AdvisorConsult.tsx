@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Advisor, GameState } from "../types";
 import { ADVISORS } from "../gameData";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageSquare, ShieldAlert, Radio, HelpCircle, Loader2, Send, Trash2, Key } from "lucide-react";
+import { MessageSquare, ShieldAlert, Radio, HelpCircle, Loader2, Send, Trash2, Key, Brain } from "lucide-react";
 import { getLocalAdvisorFallback } from "../utils/localFallbacks";
 import { getClientApiKey, setClientApiKey, clientGeminiAdvisor } from "../utils/clientGemini";
 
@@ -23,6 +23,17 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
   const [error, setError] = useState<string>("");
   const [clientApiKey, setClientApiKeyLocal] = useState<string>(getClientApiKey() || "");
   const [showKeyInput, setShowKeyInput] = useState<boolean>(false);
+
+  const parseThinking = (text: string) => {
+    const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/i;
+    const match = text.match(thinkingRegex);
+    if (match) {
+      const thinkingContent = match[1].trim();
+      const mainContent = text.replace(thinkingRegex, "").trim();
+      return { thinking: thinkingContent, speech: mainContent };
+    }
+    return { thinking: null, speech: text };
+  };
 
   const activeAdvisor = ADVISORS.find((a) => a.id === selectedAdvisorId) || ADVISORS[0];
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -389,7 +400,27 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
                             : "bg-[#0b0f19] border border-white/10 text-slate-200 max-w-[85%] rounded-tl-none border-l-2 border-l-amber-500"
                         }`}
                       >
-                        <div className="whitespace-pre-line">{msg.text}</div>
+                        {isUser ? (
+                          <div className="whitespace-pre-line">{msg.text}</div>
+                        ) : (
+                          (() => {
+                            const { thinking, speech } = parseThinking(msg.text);
+                            return (
+                              <>
+                                {thinking && (
+                                  <div className="mb-2 p-2.5 bg-amber-500/5 border border-amber-500/10 border-l-2 border-l-amber-500/50 rounded text-[11px] text-slate-400 font-mono leading-relaxed">
+                                    <span className="text-[10px] text-amber-500 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1">
+                                      <Brain className="w-3 h-3 animate-pulse" />
+                                      Ministerial Cognitive Analysis
+                                    </span>
+                                    {thinking}
+                                  </div>
+                                )}
+                                <div className="whitespace-pre-line">{speech}</div>
+                              </>
+                            );
+                          })()
+                        )}
                       </div>
                     </motion.div>
                   );
