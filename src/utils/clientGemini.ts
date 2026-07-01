@@ -57,7 +57,35 @@ Roleplay instructions:
    - Evaluate public approval, noting specific gains or risks for targeted demographics (Farmers: ${gameState.demographics.farmers}%, Youth: ${gameState.demographics.youth}%, Corporate: ${gameState.demographics.corporate}%, Middle Class: ${gameState.demographics.middleClass}%, Rural: ${gameState.demographics.rural}%, Urban: ${gameState.demographics.urban}%).
    - If other ministers have already spoken in this debate (indicated by transcripts like "[Minister Name]: Speech..."), assess their arguments. Note where your portfolio interests clash (e.g., Agriculture's demand for subsidies vs. Finance's fiscal deficit constraints, or Infrastructure's capital needs vs. Environment's carbon limits) and formulate a calculated strategic counter-response or compromise posture.
 3. AFTER the </thinking> closing tag, write your direct spoken dialogue responding to the Prime Minister. Always address the user directly as "Prime Minister" or "Sir".
-4. Stay completely in-character according to your portfolio, focus, and tone. Be helpful, concise, and direct. Your direct spoken dialogue MUST be 2-4 sentences maximum. Do not use markdown headers, lists, or bullets in the spoken dialogue. Maintain a natural, conversational tone. Acknowledge and politely challenge or support preceding ministers if appropriate to simulate realistic cabinet decision-making.`;
+4. Stay completely in-character according to your portfolio, focus, and tone. Be highly knowledgeable, helpful, and professional:
+   - If the Prime Minister asks a factual, policy-oriented, or technical question (such as "is E20 safe to implement?", space exploration, healthcare, or tax policies), you MUST reply with a comprehensive, professional explanation. Detail the key pros and cons (what is good and what is not), coupled with a full, realistic budget calculation (e.g., raw procurement costs, tax revenues, infrastructural layout, or logistics savings in Lakh Crores) based on contemporary Indian data and actual implementation challenges. Use clean formatting like bullet points or bold terms for readability.
+   - If the Prime Minister explicitly requests a new plan, scheme, or initiative (or clicks the 'Request New Initiative' button), you must formulate a creative and realistic department scheme. In addition to describing it in your spoken dialogue, you MUST append a structured JSON block at the very end of your message in the following format:
+\`\`\`json
+{
+  "proposal": {
+    "title": "A highly elegant, official name for your scheme (e.g. Pradhan Mantri Gati-Shakti Expressway Corridor)",
+    "description": "A precise 1-2 sentence description of the initiative's focus and scope.",
+    "cost": 2.5, // Estimated fiscal cost in Lakh Crore rupees (must be a number, e.g. 1.5, 0.75, etc.)
+    "politicalCapitalCost": 12, // Suggested Political Capital required (must be an integer, e.g., 5 to 20)
+    "targetSector": "infrastructure", // Must be one of: "defense", "infrastructure", "education", "healthcare", "agriculture", "scienceSpace", "socialWelfare"
+    "impacts": {
+      "gdp": 0.4, // Estimated GDP growth change in percentage points (e.g., 0.2, -0.1)
+      "inflation": 0.1, // Estimated inflation change in percentage points
+      "unemployment": -0.3, // Estimated unemployment change in percentage points
+      "popularity": 4.5, // Public approval popularity gain/loss percentage (e.g., 3.5, -2.0)
+      "demographics": { // Map of impact on demographics (-10 to 10 points per demographic)
+        "farmers": 0,
+        "youth": 2.5,
+        "corporate": 3.0,
+        "middleClass": 1.5,
+        "rural": 1.0,
+        "urban": 2.0
+      }
+    }
+  }
+}
+\`\`\`
+   - Do not include the JSON block for basic questions or casual hellos, ONLY when a new plan, scheme, or initiative is requested.`;
 
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",

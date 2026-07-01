@@ -20,13 +20,39 @@ import {
 import { getLocalAdvisorFallback } from "../utils/localFallbacks";
 import { getClientApiKey, setClientApiKey, clientGeminiAdvisor } from "../utils/clientGemini";
 
-interface AdvisorConsultProps {
-  gameState: GameState;
-}
-
 interface Message {
   role: "user" | "assistant";
   text: string;
+  proposal?: {
+    id: string;
+    title: string;
+    description: string;
+    cost: number;
+    politicalCapitalCost: number;
+    targetSector: string;
+    impacts: {
+      gdp?: number;
+      inflation?: number;
+      unemployment?: number;
+      popularity?: number;
+      demographics?: Record<string, number>;
+    };
+  };
+  proposalStatus?: "pending" | "approved" | "rejected";
+  allottedBudget?: number;
+}
+
+interface AdvisorConsultProps {
+  gameState: GameState;
+  setGameState?: React.Dispatch<React.SetStateAction<GameState>>;
+  setPassedPolicies?: React.Dispatch<React.SetStateAction<Array<{
+    id: string;
+    title: string;
+    description: string;
+    cost: number;
+    date: string;
+    custom: boolean;
+  }>>>;
 }
 
 interface DebateMessage {
@@ -34,7 +60,7 @@ interface DebateMessage {
   text: string;
 }
 
-export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
+export default function AdvisorConsult({ gameState, setGameState, setPassedPolicies }: AdvisorConsultProps) {
   // General view states
   const [activeTab, setActiveTab] = useState<"consult" | "debate">("consult");
   const [clientApiKey, setClientApiKeyLocal] = useState<string>(getClientApiKey() || "");
@@ -67,6 +93,28 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
   useEffect(() => {
     debateEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [debateMessages, debateLoading, debateActiveAdvisorId, activeTab]);
+
+  // Load chats from localStorage
+  useEffect(() => {
+    try {
+      const savedChats = localStorage.getItem("loksabha_advisor_chats_v2");
+      if (savedChats) {
+        setChats(JSON.parse(savedChats));
+      }
+    } catch (e) {
+      console.error("Failed to load saved chats", e);
+    }
+  }, []);
+
+  // Save chats to localStorage
+  useEffect(() => {
+    if (Object.keys(chats).length === 0) return;
+    try {
+      localStorage.setItem("loksabha_advisor_chats_v2", JSON.stringify(chats));
+    } catch (e) {
+      console.error("Failed to save chats", e);
+    }
+  }, [chats]);
 
   const currentMessages = chats[selectedAdvisorId] || [];
 
@@ -149,9 +197,38 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
         }
       }
 
+      let cleanAdviceText = adviceText;
+      let parsedProposal: any = null;
+
+      const jsonRegex = /```json\s*([\s\S]*?)\s*```/;
+      const jsonMatch = adviceText.match(jsonRegex);
+      if (jsonMatch) {
+        try {
+          const rawJson = JSON.parse(jsonMatch[1].trim());
+          if (rawJson.proposal) {
+            parsedProposal = rawJson.proposal;
+            if (!parsedProposal.id) {
+              parsedProposal.id = `prop_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`;
+            }
+            cleanAdviceText = adviceText.replace(jsonRegex, "").trim();
+          }
+        } catch (e) {
+          console.error("Failed to parse proposal JSON from advisor response", e);
+        }
+      }
+
       setChats((prev) => ({
         ...prev,
-        [selectedAdvisorId]: [...updatedHistory, { role: "assistant", text: adviceText }],
+        [selectedAdvisorId]: [
+          ...updatedHistory, 
+          { 
+            role: "assistant", 
+            text: cleanAdviceText,
+            proposal: parsedProposal,
+            proposalStatus: parsedProposal ? "pending" : undefined,
+            allottedBudget: parsedProposal ? parsedProposal.cost : undefined
+          }
+        ],
       }));
     } catch (err: any) {
       console.error(err);
@@ -167,6 +244,123 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
       [selectedAdvisorId]: [],
     }));
     setError("");
+  };
+
+  const handlePassProposal = (messageIndex: number, prop: any, customBudget: number) => {
+    if (!setGameState) {
+      setError("Game state engine is currently disconnected.");
+      return;
+    }
+
+    if (gameState.treasury < customBudget) {
+      setError(`Fiscal deficit warning! India's National Treasury (₹${gameState.treasury.toFixed(2)} L Cr) has insufficient reserves to cover this ₹${customBudget.toFixed(2)} L Cr budget allotment.`);
+      return;
+    }
+
+    if (gameState.politicalCapital < prop.politicalCapitalCost) {
+      setError(`Political deadlock! You do not have enough Political Capital (${gameState.politicalCapital} / ${prop.politicalCapitalCost} PC) to enact this directive.`);
+      return;
+    }
+
+    // Update state variables
+    setGameState((prev) => {
+      const updatedSectors = { ...prev.sectors };
+      const sectorKey = prop.targetSector as keyof typeof prev.sectors;
+      if (sectorKey && sectorKey in updatedSectors) {
+        updatedSectors[sectorKey] = Number((updatedSectors[sectorKey] + customBudget).toFixed(2));
+      }
+
+      const updatedDemographics = { ...prev.demographics };
+      if (prop.impacts?.demographics) {
+        for (const [key, change] of Object.entries(prop.impacts.demographics)) {
+          const typedKey = key as keyof typeof prev.demographics;
+          if (typedKey in updatedDemographics) {
+            updatedDemographics[typedKey] = Math.max(0, Math.min(100, updatedDemographics[typedKey] + (change as number)));
+          }
+        }
+      }
+
+      const nextGdpGrowth = Math.max(0, prev.gdpGrowth + (prop.impacts?.gdp || 0));
+      const nextInflation = Math.max(0.1, prev.inflation + (prop.impacts?.inflation || 0));
+      const nextUnemployment = Math.max(0.1, prev.unemployment + (prop.impacts?.unemployment || 0));
+      const nextPopularity = Math.max(0, Math.min(100, prev.popularity + (prop.impacts?.popularity || 0)));
+
+      return {
+        ...prev,
+        treasury: Number((prev.treasury - customBudget).toFixed(2)),
+        politicalCapital: Math.max(0, prev.politicalCapital - prop.politicalCapitalCost),
+        sectors: updatedSectors,
+        demographics: updatedDemographics,
+        gdpGrowth: Number(nextGdpGrowth.toFixed(2)),
+        inflation: Number(nextInflation.toFixed(2)),
+        unemployment: Number(nextUnemployment.toFixed(2)),
+        popularity: Number(nextPopularity.toFixed(2)),
+      };
+    });
+
+    if (setPassedPolicies) {
+      setPassedPolicies((prev) => [
+        ...prev,
+        {
+          id: prop.id,
+          title: prop.title,
+          description: prop.description,
+          cost: customBudget,
+          date: `${gameState.month} ${gameState.year}`,
+          custom: true,
+        },
+      ]);
+    }
+
+    setChats((prev) => {
+      const activeChats = [...(prev[selectedAdvisorId] || [])];
+      if (activeChats[messageIndex]) {
+        activeChats[messageIndex] = {
+          ...activeChats[messageIndex],
+          proposalStatus: "approved",
+          allottedBudget: customBudget,
+        };
+      }
+      return {
+        ...prev,
+        [selectedAdvisorId]: activeChats,
+      };
+    });
+
+    setError("");
+  };
+
+  const handleDeclineProposal = (messageIndex: number) => {
+    setChats((prev) => {
+      const activeChats = [...(prev[selectedAdvisorId] || [])];
+      if (activeChats[messageIndex]) {
+        activeChats[messageIndex] = {
+          ...activeChats[messageIndex],
+          proposalStatus: "rejected",
+        };
+      }
+      return {
+        ...prev,
+        [selectedAdvisorId]: activeChats,
+      };
+    });
+    setError("");
+  };
+
+  const handleUpdateAllottedBudget = (messageIndex: number, budget: number) => {
+    setChats((prev) => {
+      const activeChats = [...(prev[selectedAdvisorId] || [])];
+      if (activeChats[messageIndex]) {
+        activeChats[messageIndex] = {
+          ...activeChats[messageIndex],
+          allottedBudget: budget,
+        };
+      }
+      return {
+        ...prev,
+        [selectedAdvisorId]: activeChats,
+      };
+    });
   };
 
   // Sequential Multi-Agent Cabinet Committee Debate Handler
@@ -586,7 +780,7 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
 
             <div className="relative z-10 flex flex-col flex-1">
               {/* Header profile */}
-              <div className="flex items-start justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center space-x-3">
                   <img
                     src={activeAdvisor.avatar}
@@ -601,6 +795,19 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
                     </p>
                   </div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    handleSendMessage(
+                      `Minister, as the head of the ${activeAdvisor.ministry}, please formulate and propose a formal new strategic plan or public policy initiative for my immediate approval. Give me a detailed justification with a budget breakdown of pros and cons, and output the proposal parameters in the standard JSON template format.`
+                    );
+                  }}
+                  disabled={loading}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 disabled:opacity-50 text-black font-extrabold text-[10px] uppercase tracking-wider rounded-lg flex items-center gap-1.5 shadow-md shadow-amber-500/15 transition-all cursor-pointer select-none"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-black animate-spin-slow" />
+                  <span>Request Initiative</span>
+                </button>
               </div>
 
               {/* Scrollable conversation logs */}
@@ -663,7 +870,124 @@ export default function AdvisorConsult({ gameState }: AdvisorConsultProps) {
                                       {thinking}
                                     </div>
                                   )}
-                                  <div className="whitespace-pre-line">{speech}</div>
+                                  <div className="whitespace-pre-line text-xs md:text-sm">{speech}</div>
+
+                                  {msg.proposal && (
+                                    <div className="mt-4 p-4 bg-slate-950/60 border border-amber-500/20 rounded-xl space-y-3 font-sans shadow-lg relative overflow-hidden">
+                                      {/* Visual gradient banner */}
+                                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500" />
+                                      
+                                      <div className="flex items-start justify-between">
+                                        <div>
+                                          <span className="text-[9px] bg-amber-500/10 text-amber-400 font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                                            📜 Official Executive Initiative
+                                          </span>
+                                          <h4 className="font-bold text-slate-100 mt-1.5 text-xs md:text-sm">
+                                            {msg.proposal.title}
+                                          </h4>
+                                        </div>
+                                        {msg.proposalStatus === "approved" && (
+                                          <span className="text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2 py-1 rounded font-extrabold uppercase tracking-widest flex items-center gap-1 shrink-0">
+                                            ✓ Approved & Enacted
+                                          </span>
+                                        )}
+                                        {msg.proposalStatus === "rejected" && (
+                                          <span className="text-[10px] text-rose-400 bg-rose-950/40 border border-rose-500/30 px-2 py-1 rounded font-extrabold uppercase tracking-widest shrink-0">
+                                            ✕ Declined
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <p className="text-xs text-slate-300 leading-relaxed italic">
+                                        "{msg.proposal.description}"
+                                      </p>
+
+                                      {/* Metrics Grid */}
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] md:text-xs">
+                                        <div className="bg-white/5 p-2 rounded-lg">
+                                          <span className="text-slate-400 block uppercase text-[8px] tracking-wide">Proposed Cost</span>
+                                          <span className="font-semibold text-amber-500">₹{msg.proposal.cost} L Cr</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg">
+                                          <span className="text-slate-400 block uppercase text-[8px] tracking-wide">PC Required</span>
+                                          <span className="font-semibold text-slate-200">{msg.proposal.politicalCapitalCost} PC</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg">
+                                          <span className="text-slate-400 block uppercase text-[8px] tracking-wide">Target Ministry</span>
+                                          <span className="font-semibold text-slate-300 capitalize">{msg.proposal.targetSector}</span>
+                                        </div>
+                                        <div className="bg-white/5 p-2 rounded-lg">
+                                          <span className="text-slate-400 block uppercase text-[8px] tracking-wide">GDP Impact</span>
+                                          <span className="font-semibold text-emerald-400">+{msg.proposal.impacts?.gdp || 0}%</span>
+                                        </div>
+                                      </div>
+
+                                      {/* Projected Demographics Impact */}
+                                      {msg.proposal.impacts?.demographics && (
+                                        <div className="bg-white/5 p-2.5 rounded-lg">
+                                          <span className="text-slate-400 block uppercase text-[8px] tracking-wide mb-1.5">Projected Approval Gains</span>
+                                          <div className="flex flex-wrap gap-2">
+                                            {Object.entries(msg.proposal.impacts.demographics).map(([demo, val]) => {
+                                              const typedVal = val as number;
+                                              if (typedVal === 0) return null;
+                                              return (
+                                                <span key={demo} className={`text-[9px] px-2 py-0.5 rounded font-medium ${typedVal > 0 ? "bg-emerald-950/40 text-emerald-400 border border-emerald-900/30" : "bg-rose-950/40 text-rose-400 border border-rose-900/30"}`}>
+                                                  {demo}: {typedVal > 0 ? "+" : ""}{typedVal}%
+                                                </span>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Interactive Enactment controls */}
+                                      {msg.proposalStatus === "pending" ? (
+                                        <div className="pt-2 border-t border-white/5 space-y-3">
+                                          {/* Allot Budget slider/input */}
+                                          <div className="flex items-center justify-between text-xs bg-black/40 p-2 rounded-lg">
+                                            <span className="text-slate-400">Adjust Budget Allotment:</span>
+                                            <div className="flex items-center space-x-2">
+                                              <span className="text-slate-500">₹</span>
+                                              <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0.1"
+                                                className="bg-slate-900 border border-white/20 rounded px-2 py-1 text-xs text-amber-500 font-bold w-20 text-center focus:outline-none focus:border-amber-500"
+                                                value={msg.allottedBudget !== undefined ? msg.allottedBudget : msg.proposal.cost}
+                                                onChange={(e) => {
+                                                  const val = parseFloat(e.target.value);
+                                                  if (!isNaN(val)) {
+                                                    handleUpdateAllottedBudget(index, val);
+                                                  }
+                                                }}
+                                              />
+                                              <span className="text-slate-400 font-medium text-[10px]">L Cr</span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center space-x-2.5">
+                                            <button
+                                              onClick={() => handlePassProposal(index, msg.proposal, msg.allottedBudget !== undefined ? msg.allottedBudget : msg.proposal.cost)}
+                                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-black font-extrabold text-[10px] md:text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/10 cursor-pointer"
+                                            >
+                                              Pass & Allot Budget
+                                            </button>
+                                            <button
+                                              onClick={() => handleDeclineProposal(index)}
+                                              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[10px] md:text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer"
+                                            >
+                                              Decline
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-[10px] text-slate-500 italic pt-1 flex items-center justify-between">
+                                          <span>Budget Allotted: ₹{(msg.allottedBudget ?? msg.proposal.cost).toFixed(2)} Lakh Crores</span>
+                                          <span>Resolution Locked</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </>
                               );
                             })()

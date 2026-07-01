@@ -943,7 +943,11 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <AdvisorConsult gameState={gameState} />
+                <AdvisorConsult 
+                  gameState={gameState} 
+                  setGameState={setGameState} 
+                  setPassedPolicies={setPassedPolicies} 
+                />
               </motion.div>
             )}
 
