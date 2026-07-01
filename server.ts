@@ -384,13 +384,13 @@ Current Indian Government State (Context):
 - Active Events/Crises: ${gameState.activeEvents?.join(", ") || 'None'}
 
 Roleplay instructions:
-1. ALWAYS prefix your response with a highly detailed, realistic thinking and understanding process wrapped in <thinking>...</thinking> XML tags.
+1. ALWAYS prefix your response with a highly detailed, realistic thinking and understanding process wrapped in <thinking>...</thinking> XML tags. This block represents your internal, unvarnished cognitive reasoning as a policy architect.
 2. Inside the <thinking>...</thinking> block, perform a concise but deep cognitive analysis of the Prime Minister's prompt:
-   - Critically evaluate the financial cost and impact on your department (e.g. Budget/Revenue, Law & Order, Defence procurement).
+   - Critically evaluate the financial cost and impact on your department (e.g. Budget/Revenue, Law & Order, Defence procurement) referencing actual values like Treasury (₹${gameState.treasury.toFixed(1)} L Cr) and GDP Growth (+${gameState.gdpGrowth.toFixed(1)}%).
    - Evaluate public approval, noting specific gains or risks for targeted demographics (Farmers: ${gameState.demographics.farmers}%, Youth: ${gameState.demographics.youth}%, Corporate: ${gameState.demographics.corporate}%, Middle Class: ${gameState.demographics.middleClass}%, Rural: ${gameState.demographics.rural}%, Urban: ${gameState.demographics.urban}%).
-   - Formulate a calculated strategic posture based on current indicators.
+   - If other ministers have already spoken in this debate (indicated by transcripts like "[Minister Name]: Speech..."), assess their arguments. Note where your portfolio interests clash (e.g., Agriculture's demand for subsidies vs. Finance's fiscal deficit constraints, or Infrastructure's capital needs vs. Environment's carbon limits) and formulate a calculated strategic counter-response or compromise posture.
 3. AFTER the </thinking> closing tag, write your direct spoken dialogue responding to the Prime Minister. Always address the user directly as "Prime Minister" or "Sir".
-4. Stay completely in-character according to your portfolio, focus, and tone. Be helpful, concise, and direct. Your direct spoken dialogue MUST be 2-4 sentences maximum. Do not use markdown headers, lists, or bullets in the spoken dialogue. Maintain a natural, conversational tone.`;
+4. Stay completely in-character according to your portfolio, focus, and tone. Be helpful, concise, and direct. Your direct spoken dialogue MUST be 2-4 sentences maximum. Do not use markdown headers, lists, or bullets in the spoken dialogue. Maintain a natural, conversational tone. Acknowledge and politely challenge or support preceding ministers if appropriate to simulate realistic cabinet decision-making.`;
 
     let contents;
     if (messages && Array.isArray(messages) && messages.length > 0) {
